@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(mpc_cpp)
 
+find_package(Eigen3 REQUIRED)
+
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel.")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -16,5 +18,7 @@ file(GLOB SRC_FILES src/*.cpp)
 # Simple testing main
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
+target_include_directories(${PROJECT_NAME} PUBLIC include)
+
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
-target_link_libraries(${PROJECT_NAME} PRIVATE)
+target_link_libraries(${PROJECT_NAME} PRIVATE Eigen3::Eigen)
