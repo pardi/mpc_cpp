@@ -2,6 +2,7 @@
 #include <LinearSys.h>
 
 int main (){
-    LinearSys ls;
+    std::array<double, 8> a;
+    LinearSys ls(a, a, a, a, 0.1);
     return 0;
 }
