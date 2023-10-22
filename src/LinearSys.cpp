@@ -1,21 +1,18 @@
 #include <LinearSys.h>
 
-std::array<double, 8> LinearSys::step(std::array<double, 8> u){
+double LinearSys::step(const double u){
 
-    const Eigen::Map<Eigen::MatrixXd> u(u.data(), 8, 1);
     const Eigen::Map<Eigen::MatrixXd> A(A_.data(), 4, 4);
-    const Eigen::Map<Eigen::MatrixXd> b(b_.data(), 8, 1);
-    const Eigen::Map<Eigen::MatrixXd> c(c_.data(), 1, 8);
-    Eigen::Map<Eigen::MatrixXd> x(x_.data(), 1, 8);
+    const Eigen::Map<Eigen::MatrixXd> b(b_.data(), 4, 1);
+    const Eigen::Map<Eigen::MatrixXd> c(c_.data(), 1, 4);
+    Eigen::Map<Eigen::MatrixXd> x(x_.data(), 1, 4);
 
-    std::array<double, 8> yVec;
-    
-    Eigen::Map<Eigen::MatrixXd> y(yVec.data(), 8, 1);
-    
+    double y = 0.0;
+
     x = A_ * x + b * u;
     y = c_ * x;
 
-    return yVec;
+    return y;
 }
 
 void LinearSys::reset(){
