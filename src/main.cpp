@@ -1,5 +1,6 @@
 #include <eigen3/Eigen/Dense>
 #include <LinearSys.h>
+#include <iostream>
 
 int main (){
 
@@ -21,7 +22,17 @@ int main (){
     double dt = 1e-3;
     LinearSys ls(A, b, c, x0, dt);
 
-    ls.step(0.1);
+    std::cout << ls.step(0.1) << std::endl;
 
+    // std::array<double, 3> avec = {1, 2, 3};
+    // const Eigen::Map<Eigen::VectorXd> a(avec.data(), 3, 1);
+    // Eigen::VectorXd at = a.transpose();
+
+    // // Eigen::VectorXd a(3);
+    // // a <<  1, 2, 3;
+    // // Eigen::VectorXd a2 = a.transpose();
+    
+    // std::cout << at << std::endl;
+    // std::cout << a.dot(at) << std::endl;
     return 0;
 }

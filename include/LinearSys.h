@@ -3,6 +3,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include <array>
+#include <iostream>
 
 class LinearSys{
 
