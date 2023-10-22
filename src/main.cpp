@@ -21,5 +21,7 @@ int main (){
     double dt = 1e-3;
     LinearSys ls(A, b, c, x0, dt);
 
+    ls.step(0.1);
+
     return 0;
 }
