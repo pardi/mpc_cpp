@@ -20,7 +20,7 @@ int main (){
     std::array<double, 4> x0 = {0.0, 0.0, 0.0, 0.0};
 
     double dt = 1e-3;
-    LinearSys ls(A, b, c, x0, dt);
+    LinearSys ls(A, b, c, x0);
 
     std::cout << ls.step(0.1) << std::endl;
 
