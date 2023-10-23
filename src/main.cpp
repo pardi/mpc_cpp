@@ -1,5 +1,6 @@
 #include <eigen3/Eigen/Dense>
 #include <LinearSys.h>
+#include <mpc.h>
 #include <iostream>
 
 int main (){
@@ -22,18 +23,7 @@ int main (){
     double dt = 0.05;
     LinearSys ls(A, b, c, x0, dt);
 
-    std::cout << ls.step(1) << std::endl;
-    
+    mpc mpc_ctrl;
 
-    // std::array<double, 3> avec = {1, 2, 3};
-    // const Eigen::Map<Eigen::VectorXd> a(avec.data(), 3, 1);
-    // Eigen::VectorXd at = a.transpose();
-
-    // // Eigen::VectorXd a(3);
-    // // a <<  1, 2, 3;
-    // // Eigen::VectorXd a2 = a.transpose();
-    
-    // std::cout << at << std::endl;
-    // std::cout << a.dot(at) << std::endl;
     return 0;
 }
