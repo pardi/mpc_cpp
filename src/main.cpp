@@ -4,10 +4,10 @@
 
 int main (){
 
-    const double m1 = 20.0;
-    const double m2 = 20.0;
-    const double k1 = 1000.0;
-    const double k2 = 2000.0;
+    const double m1 = 2.0;
+    const double m2 = 2.0;
+    const double k1 = 100.0;
+    const double k2 = 200.0;
     const double d1 = 1.0;
     const double d2 = 5.0;
 
@@ -19,14 +19,10 @@ int main (){
     std::array<double, 4> c = {1.0, 0.0, 0.0, 0.0};
     std::array<double, 4> x0 = {0.0, 0.0, 0.0, 0.0};
 
-    double dt = 1e-3;
-    LinearSys ls(A, b, c, x0);
+    double dt = 0.05;
+    LinearSys ls(A, b, c, x0, dt);
 
-    std::cout << ls.step(.01) << std::endl;
-
-    for (int i = 0; i < 100; ++i){
-        std::cout << ls.step(0.0) << std::endl;
-    }
+    std::cout << ls.step(1) << std::endl;
     
 
     // std::array<double, 3> avec = {1, 2, 3};

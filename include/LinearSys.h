@@ -8,17 +8,29 @@
 class LinearSys{
 
     public: 
-        LinearSys(const std::array<double, 16>& A, const std::array<double, 4>& b, const std::array<double, 4>& c, const std::array<double, 4>& x0): A_{A}, b_{b}, c_{c}, x0_{x0}, x_{x0}{}
+    
+        LinearSys(const std::array<double, 16>& A, const std::array<double, 4>& b, const std::array<double, 4>& c, const std::array<double, 4>& x0, double dt = 1e-3);
         ~LinearSys() = default;
         double step(double u);
         void reset();
+    
     private:
+
+        void discretiseSys();
+
+        // Continuos Matrices
+        std::array<double, 16> Ac_;
+        std::array<double, 4> bc_;
+        std::array<double, 4> cc_;
+        // Discretised Matrices
         std::array<double, 16> A_;
         std::array<double, 4> b_;
         std::array<double, 4> c_;
+        // State space
         std::array<double, 4> x0_;
         std::array<double, 4> x_;
-
+        
+        double dt_;
         
 };
 
