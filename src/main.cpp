@@ -21,8 +21,8 @@ int main (){
     std::array<double, 4> x0 = {0.0, 0.0, 0.0, 0.0};
 
     double dt = 0.05;
-    size_t pred_horizon = 3;
-    size_t ctrl_horizon = 1;
+    size_t pred_horizon = 6;
+    size_t ctrl_horizon = 3;
 
     mpc mpc_ctrl(A, b, c, x0, dt, pred_horizon, ctrl_horizon);
 

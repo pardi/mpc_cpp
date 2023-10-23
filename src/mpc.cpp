@@ -50,83 +50,7 @@ void mpc::computeMPCMatrices(){
     /*
     // CONTROL MATRIX - M
     // size[pred_horizon, ctrl_horizon]
-    */
-
-    std::vector<std::vector<double>> M; 
-
-    std::vector<double> MRow(ctrl_horizon_);
-    std::fill(MRow.begin(), MRow.end(), 0);
-
-    // Define shift function for vectors
-
-    auto shift_right = [](std::vector<double>::iterator start, std::vector<double>::iterator end, size_t distance){
-        
-        auto ptr = end - distance;
-
-        for (auto vecPtr = end; vecPtr > start; --vecPtr){
-            if (ptr < start){
-                std::fill(start, vecPtr + 1, 0);
-                return;
-            }
-            *vecPtr = *ptr;
-            ptr--;
-        }
-    };
-
-
-    // Within ctrl horizon
-
-    for (size_t idx_ctrl = 0; idx_ctrl < ctrl_horizon_; ++idx_ctrl){
-        shift_right(MRow.begin(), MRow.end(), 1);    
-        Eigen::Matrix<double, 4, 4> powA = Eigen::Matrix<double, 4, 4>::Identity();
-        
-        for (size_t idx_pow = 0; idx_pow < idx_ctrl; ++idx_pow){
-            powA = powA * A;
-        }
-
-        MRow[0] = (c * powA * b)[0];
-
-        M.push_back(MRow);
-
-    }
-
-    // After ctrl horizon
-
-    Eigen::Matrix<double, 4, 4> Ahat = Eigen::Matrix<double, 4, 4>::Identity();
-
-    for (size_t idx_pred = ctrl_horizon_; idx_pred < pred_horizon_; ++idx_pred){
-        shift_right(MRow.begin(), MRow.end(), 1);  
-
-        Eigen::Matrix<double, 4, 4> powA = Eigen::Matrix<double, 4, 4>::Identity();
-        
-        for (size_t idx_pow = 0; idx_pow < idx_pred; ++idx_pow){
-            powA = powA * A;
-        }
-
-        MRow[0] = (c * powA * b)[0];
-
-
-        Eigen::Matrix<double, 4, 4> powAhat = Eigen::Matrix<double, 4, 4>::Identity();
-        
-        for (size_t idx_pow = 0; idx_pow < idx_pred - ctrl_horizon_; ++idx_pow){
-            powAhat = powAhat * A;
-        }
-
-        for (size_t idx_pow = 0; idx_pow < idx_pred; ++idx_pow){
-            Ahat = Ahat + powAhat;
-        }
-
-        *MRow.end() = (c * Ahat * b)[0];
-
-        M.push_back(MRow);
-        
-
-
-    }
-
-    
-
-
+    // 
     // M = [CB  0   0   0   ...
     //      CAB CB  0   0   ...
     //      CA^2B   CAB CB  0   ...
@@ -136,16 +60,62 @@ void mpc::computeMPCMatrices(){
     //      ...
     //      CA^fB   CA^(f-1)B   ...     CA_(f,v)B]
 
-}
+    */
+
+    std::vector<std::vector<double>> M; 
+
+    std::vector<double> MRow(ctrl_horizon_);
+    std::fill(MRow.begin(), MRow.end(), 0);
+
+    // Define shift function for vectors
+
+    auto shift_right = [](std::vector<double>& vec, size_t distance) {
+        if(distance >= vec.size()) {
+            std::fill(vec.begin(), vec.end(), 0);
+            return;
+        }
+        
+        std::move_backward(vec.begin(), vec.end() - distance, vec.end());
+        std::fill(vec.begin(), vec.begin() + distance, 0);
+    };  
 
 
-void mpc::computeControl(){
-    // u = (M^T * W4 * M + w3)^-1 * M^T * W4 * s
+    // Within ctrl horizon
 
+    for (size_t idx_ctrl = 0; idx_ctrl < ctrl_horizon_; ++idx_ctrl){
+        shift_right(MRow, 1);    
+   
+        MRow[0] = (c * matPow(A, idx_ctrl) * b)[0];
 
-    // A_(i,v) = A^(i-v) + A^(i-v-1)+ ... + A + I
+        M.push_back(MRow);
 
-    // W3 = W1^T * W2 * W1
+    }
+
+    // After ctrl horizon
+
+    Eigen::Matrix<double, 4, 4> Ahat = Eigen::Matrix<double, 4, 4>::Identity();
+
+    for (size_t idx_pred = ctrl_horizon_; idx_pred <= pred_horizon_; ++idx_pred){
+        shift_right(MRow, 1);  
+
+        MRow[0] = (c * matPow(A, idx_pred) * b)[0];
+
+        // A_(i,v) = A^(i-v) + A^(i-v-1)+ ... + A + I
+
+        auto powAhat = matPow(A, idx_pred - ctrl_horizon_);
+
+        for (size_t idx_pow = 0; idx_pow < idx_pred; ++idx_pow){
+            Ahat = Ahat + powAhat;
+        }
+         
+        *(MRow.end() - 1) = (c * Ahat * b)[0];
+
+        M.push_back(MRow);
+    }
+
+    /*
+    // WEIGHTS
+    // 
     // W1 = [I  0   0   0   ...
     //      -I  I   0   0   ...
     //      .   .   .
@@ -154,4 +124,29 @@ void mpc::computeControl(){
     //      0  Q1   0   0   ...
     //      .   .   .
     //      0  0   0   ... Qv-1]
+    // W3 = W1^T * W2 * W1
+    */
+
+    std::vector<std::vector<double>> W1(ctrl_horizon_);
+    std::vector<double> W1row(ctrl_horizon_);
+    std::fill(W1row.begin(), W1row.end(), 0);
+    W1row[0] = 1.0;
+    W1.push_back(W1row);
+
+    W1row[0] = -1.0;
+    W1row[1] = 1.0;
+    W1.push_back(W1row);
+
+
+
+
+
+
+}
+
+void mpc::computeControl(){
+    // u = (M^T * W4 * M + w3)^-1 * M^T * W4 * s
+
+
+
 }
