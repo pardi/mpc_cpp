@@ -21,9 +21,10 @@ int main (){
     std::array<double, 4> x0 = {0.0, 0.0, 0.0, 0.0};
 
     double dt = 0.05;
-    LinearSys ls(A, b, c, x0, dt);
+    size_t pred_horizon = 3;
+    size_t ctrl_horizon = 1;
 
-    mpc mpc_ctrl;
+    mpc mpc_ctrl(A, b, c, x0, dt, pred_horizon, ctrl_horizon);
 
     return 0;
 }

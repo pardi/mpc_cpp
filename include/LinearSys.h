@@ -8,11 +8,13 @@
 class LinearSys{
 
     public: 
-    
         LinearSys(const std::array<double, 16>& A, const std::array<double, 4>& b, const std::array<double, 4>& c, const std::array<double, 4>& x0, double dt = 1e-3);
         ~LinearSys() = default;
         double step(double u);
         void reset();
+        inline std::array<double, 16> A() { return A_; }
+        inline std::array<double, 4> b() { return b_; }
+        inline std::array<double, 4> c() { return c_; }
     
     private:
 

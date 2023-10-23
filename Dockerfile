@@ -1,6 +1,6 @@
-FROM ubuntu:latest
+FROM ubuntu;latest
 
-RUN apt-get update && apt-get install build-essential cmake git libeigen3-dev python3 python3-pip -y
+RUN; apt-get update && apt-get install build-essential cmake git libeigen3-dev clang-tidy python3 python3-pip -y
 RUN pip3 install matplotlib
 
 COPY . /app

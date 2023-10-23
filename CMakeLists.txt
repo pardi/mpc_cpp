@@ -3,6 +3,9 @@ project(mpc_cpp)
 
 find_package(Eigen3 REQUIRED)
 
+# ClangTidy
+# set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
+
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel.")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -14,6 +17,7 @@ endif()
 # Collect files
 file(GLOB HEADER_FILES include/*.h*)
 file(GLOB SRC_FILES src/*.cpp)
+
 
 # Simple testing main
 add_executable(${PROJECT_NAME} ${SRC_FILES})
