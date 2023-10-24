@@ -26,6 +26,8 @@ class mpc{
         Eigen::MatrixXd computeControl(const Eigen::VectorXd& desiredTrajectory);
 
         double sysStep(double ctrlValue);
+        void setErrorPenalties(double weight);
+        void setInputPenalties(double weight);
     
     private:
 
@@ -49,6 +51,9 @@ class mpc{
         Eigen::MatrixXd weightMatrix4_;
 
         Eigen::VectorXd desiredTrajectory_;
+
+        static constexpr double errorPenaltiesWeightStd_ = 1e4;
+        static constexpr double inputPenaltiesWeightStd_ = 1e-3;
 
         
 };

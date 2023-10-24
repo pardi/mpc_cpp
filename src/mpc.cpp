@@ -151,7 +151,7 @@ void mpc::initMPCWeights() {
     
     weightMatrix2_.resize(ctrlHorizon_, ctrlHorizon_);
     weightMatrix2_.setIdentity();
-    weightMatrix2_ = weightMatrix2_ * 1e-3;
+    setInputPenalties(inputPenaltiesWeightStd_);
 
     /*
     // W3 = W1^T * W2 * W1
@@ -169,8 +169,16 @@ void mpc::initMPCWeights() {
 
     weightMatrix4_.resize(predHorizon_ + 1, predHorizon_ + 1);
     weightMatrix4_.setIdentity();
-    weightMatrix4_ = weightMatrix4_ * 1e4;
+    setErrorPenalties(errorPenaltiesWeightStd_);
 
+}
+
+void mpc::setErrorPenalties(double weight){
+    weightMatrix4_ *= weight;
+}
+
+void mpc::setInputPenalties(double weight){
+    weightMatrix2_ *= weight;
 }
 
 Eigen::MatrixXd mpc::computeControl(const Eigen::VectorXd& desiredTrajectory){
