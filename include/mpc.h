@@ -24,12 +24,12 @@ class mpc{
         ~mpc() = default;
         
     private:
-        void computeControl();
+        Eigen::MatrixXd computeControl(const Eigen::MatrixXd& desiredTrajectory);
+
         void computeMPCMatrices();
         void composeMPCStateMatrix();
         void composeMPCInputMatrix();
         void composeMPCWeights();
-
 
         template<typename Derived>
         Eigen::MatrixXd matPow(const Eigen::MatrixBase<Derived>& matrix, size_t power);
@@ -44,6 +44,8 @@ class mpc{
         Eigen::MatrixXd weightMatrix2_;
         Eigen::MatrixXd weightMatrix3_;
         Eigen::MatrixXd weightMatrix4_;
+
+        Eigen::MatrixXd desiredTrajectory_;
 
         
 };

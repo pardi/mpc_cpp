@@ -10,6 +10,20 @@ mpc::mpc(   const std::array<double, 16>& stateMatrixContinuous,
             sys_{stateMatrixContinuous, inputMatrixContinuous, outputMatrixContinuous, initialState, sampleTime}, predHorizon_{predHorizon}, ctrlHorizon_{ctrlHorizon}{
 
     computeMPCMatrices();
+
+    Eigen::MatrixXd test;
+
+    computeControl(test);
+}
+
+void mpc::computeMPCMatrices(){
+
+    composeMPCStateMatrix();
+
+    composeMPCInputMatrix();
+
+    composeMPCWeights();
+
 }
 
 void mpc::composeMPCStateMatrix(){
@@ -25,20 +39,16 @@ void mpc::composeMPCStateMatrix(){
     // f -> size of the prediction horizon
     */
 
-    auto ASys = sys_.A();
-    auto bSys = sys_.b();
-    auto cSys = sys_.c();
-    const Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > A(ASys.data());
-    const Eigen::Map<Eigen::Matrix<double, 4, 1> > b(bSys.data());
-    const Eigen::Map<Eigen::Matrix<double, 1, 4> > c(cSys.data());
+    auto sysStateMatrix = sys_.getStateMatrix();
+    auto sysOutputMatrix = sys_.getOutputMatrix();
 
-    stateMatrix_.resize(predHorizon_, 4);
+    stateMatrix_.resize(predHorizon_ + 1, 4);
     stateMatrix_.setZero();
 
-    stateMatrix_.block<1, 4>(0, 0) = c * A;
+    stateMatrix_.block<1, 4>(0, 0) = sysOutputMatrix * sysStateMatrix;
 
-    for (size_t idx_pred = 1; idx_pred < predHorizon_; ++idx_pred){
-        stateMatrix_.block<1, 4>(idx_pred, 0) = stateMatrix_.block<1, 4>(idx_pred - 1, 0) * A;
+    for (size_t idx_pred = 1; idx_pred <= predHorizon_; ++idx_pred){
+        stateMatrix_.block<1, 4>(idx_pred, 0) = stateMatrix_.block<1, 4>(idx_pred - 1, 0) * sysStateMatrix;
     }    
 }
 
@@ -59,19 +69,16 @@ void mpc::composeMPCInputMatrix(){
 
     */
 
-    auto ASys = sys_.A();
-    auto bSys = sys_.b();
-    auto cSys = sys_.c();
-    const Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > A(ASys.data());
-    const Eigen::Map<Eigen::Matrix<double, 4, 1> > b(bSys.data());
-    const Eigen::Map<Eigen::Matrix<double, 1, 4> > c(cSys.data());
+    auto sysStateMatrix = sys_.getStateMatrix();
+    auto sysInputMatrix = sys_.getInputMatrix();
+    auto sysOutputMatrix = sys_.getOutputMatrix();
 
     inputMatrix_.resize(predHorizon_ + 1, ctrlHorizon_);
     inputMatrix_.setZero();
 
     // Within ctrl horizon
     // First row
-    inputMatrix_.block(0, 0, 1, 1) = c * b;
+    inputMatrix_.block(0, 0, 1, 1) = sysOutputMatrix * sysInputMatrix;
     
     for (size_t idxCtrl = 1; idxCtrl < ctrlHorizon_; ++idxCtrl){
         
@@ -80,12 +87,12 @@ void mpc::composeMPCInputMatrix(){
         inputMatrix_.block(idxCtrl, 0, 1, 1).setZero(); // TODO: it can be removed for speed
 
         // Fill first element
-        inputMatrix_.block(idxCtrl, 0, 1, 1) = c * matPow(A, idxCtrl) * b;
+        inputMatrix_.block(idxCtrl, 0, 1, 1) = sysOutputMatrix * matPow(sysStateMatrix, idxCtrl) * sysInputMatrix;
        
     }
 
     // After ctrl horizon
-    Eigen::Matrix<double, 4, 4> Ahat = Eigen::Matrix<double, 4, 4>::Identity();
+    Eigen::Matrix<double, 4, 4> sysStateMatrixHat = Eigen::Matrix<double, 4, 4>::Identity();
 
     for (size_t idxPred = ctrlHorizon_; idxPred <= predHorizon_; ++idxPred){
         // Shift right
@@ -93,16 +100,16 @@ void mpc::composeMPCInputMatrix(){
         inputMatrix_.block(idxPred, 0, 1, 1).setZero(); // TODO: it can be removed for speed
 
         // Fill first element
-        inputMatrix_.block(idxPred, 0, 1, 1) = c * matPow(A, idxPred) * b;
+        inputMatrix_.block(idxPred, 0, 1, 1) = sysOutputMatrix * matPow(sysStateMatrix, idxPred) * sysInputMatrix;
 
         // A_(i,v) = A^(i-v) + A^(i-v-1)+ ... + A + I
-        auto powAhat = matPow(A, idxPred - ctrlHorizon_);
+        auto powAhat = matPow(sysStateMatrix, idxPred - ctrlHorizon_);
 
         for (size_t idxPow = 0; idxPow < idxPred; ++idxPow){
-            Ahat = Ahat + powAhat;
+            sysStateMatrixHat = sysStateMatrixHat + powAhat;
         }
 
-        inputMatrix_.block(idxPred, ctrlHorizon_ - 1, 1, 1) = c * Ahat * b;
+        inputMatrix_.block(idxPred, ctrlHorizon_ - 1, 1, 1) = sysOutputMatrix * sysStateMatrixHat * sysInputMatrix;
     }
 }
 
@@ -160,30 +167,24 @@ void mpc::composeMPCWeights() {
     //      0  0   0   ... Pf]
     */
 
-    weightMatrix4_.resize(predHorizon_, predHorizon_);
+    weightMatrix4_.resize(predHorizon_ + 1, predHorizon_ + 1);
     weightMatrix4_.setIdentity();
 
 }
 
-void mpc::computeMPCMatrices(){
+Eigen::MatrixXd mpc::computeControl(const Eigen::MatrixXd& desiredTrajectory){
 
-    // z_hat = O x[k] + M u_hat
+    desiredTrajectory_ = desiredTrajectory;
 
-    composeMPCStateMatrix();
+    auto currentState = sys_.getState();
 
-    composeMPCInputMatrix();
+    // s = zd - Oxk
+    std::cout << stateMatrix_.rows() << " " << stateMatrix_.cols() << std::endl;
+    // auto stateError = desiredTrajectory_ - stateMatrix_ * currentState;
+    auto stateError = stateMatrix_ * currentState;
 
-    composeMPCWeights();
-
-}
-
-void mpc::computeControl(){
-
-    // // u = (M^T * W4 * M + w3)^-1 * M^T * W4 * s
-    // // s = zd - Oxk
-
-    // auto s = zd - O * x;
-    // auto control_input = (M.tranpose() * W4 * M + W3).inverse() * M.tranpose() * W5 * s;
-
-    // return control_input;
+    // u = (M^T * W4 * M + w3)^-1 * M^T * W4 * s
+    auto controlInput = (inputMatrix_.transpose() * weightMatrix4_ * inputMatrix_ + weightMatrix3_).inverse() * inputMatrix_.transpose() * weightMatrix4_ * stateError;
+    
+    return controlInput;
 }

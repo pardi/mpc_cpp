@@ -9,11 +9,10 @@ Ac_{A}, bc_{b}, cc_{c}, x0_{x0}, x_{x0}, dt_{dt}{
 void LinearSys::discretiseSys(){
     // Backward Euler
     const Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > Ac(Ac_.data());
-    const Eigen::Map<Eigen::Matrix<double, 4, 1> > bc(bc_.data(), 4, 1);
+    const Eigen::Map<Eigen::Matrix<double, 4, 1> > bc(bc_.data());
     Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > A(A_.data());
     Eigen::Map<Eigen::Matrix<double, 4, 1>> b(b_.data());
     
-
     A = (Eigen::Matrix<double, 4, 4>::Identity() - dt_ * Ac).inverse();
     b = dt_ * A * bc;
 

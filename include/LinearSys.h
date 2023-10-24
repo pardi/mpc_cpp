@@ -12,9 +12,22 @@ class LinearSys{
         ~LinearSys() {std::cout << "mpc linearsys" << std::endl;};
         double step(double u);
         void reset();
-        inline std::array<double, 16> A() { return A_; }
-        inline std::array<double, 4> b() { return b_; }
-        inline std::array<double, 4> c() { return c_; }
+
+        inline Eigen::Map<const Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > getStateMatrix() const {
+            return Eigen::Map<const Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > (A_.data());;
+        }
+
+        inline Eigen::Map<const Eigen::Matrix<double, 4, 1> > getInputMatrix() const {
+            return Eigen::Map<const Eigen::Matrix<double, 4, 1> > (b_.data());;
+        }
+
+        inline Eigen::Map<const Eigen::Matrix<double, 1, 4> > getOutputMatrix() const {
+            return Eigen::Map<const Eigen::Matrix<double, 1, 4> > (c_.data());;
+        }
+
+        inline Eigen::Map<const Eigen::Matrix<double, 4, 1> > getState() const {
+            return Eigen::Map<const Eigen::Matrix<double, 4, 1> > (x_.data());;
+        }
     
     private:
 

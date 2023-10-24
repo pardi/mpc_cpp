@@ -21,10 +21,10 @@ int main (){
     std::array<double, 4> x0 = {0.0, 0.0, 0.0, 0.0};
 
     double dt = 0.05;
-    size_t pred_horizon = 6;
-    size_t ctrl_horizon = 5;
+    size_t predHorizon = 6;
+    size_t ctrlHorizon = 5;
 
-    mpc mpc_ctrl(A, b, c, x0, dt, pred_horizon, ctrl_horizon);
+    mpc mpc_ctrl(A, b, c, x0, dt, predHorizon, ctrlHorizon);
 
     return 0;
 }
