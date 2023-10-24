@@ -26,5 +26,19 @@ int main (){
 
     mpc mpc_ctrl(A, b, c, x0, dt, predHorizon, ctrlHorizon);
 
+    Eigen::VectorXd desiredTrajectory(predHorizon + 1);
+    desiredTrajectory.setZero();
+
+    for (auto idx = 0; idx < predHorizon + 1; idx++){
+        desiredTrajectory(idx) = 100;
+    }
+
+    for (auto idx = 0; idx < 100; ++idx){
+
+        auto inputVector = mpc_ctrl.computeControl(desiredTrajectory);
+        auto ouputValue = mpc_ctrl.sysStep(inputVector(0));
+        std::cout << ouputValue << std::endl;
+    }
+
     return 0;
 }

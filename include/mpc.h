@@ -22,9 +22,12 @@ class mpc{
                 size_t ctrlHorizon = 1);
             
         ~mpc() = default;
-        
+
+        Eigen::MatrixXd computeControl(const Eigen::VectorXd& desiredTrajectory);
+
+        double sysStep(double ctrlValue);
+    
     private:
-        Eigen::MatrixXd computeControl(const Eigen::MatrixXd& desiredTrajectory);
 
         void computeMPCMatrices();
         void composeMPCStateMatrix();
@@ -45,7 +48,7 @@ class mpc{
         Eigen::MatrixXd weightMatrix3_;
         Eigen::MatrixXd weightMatrix4_;
 
-        Eigen::MatrixXd desiredTrajectory_;
+        Eigen::VectorXd desiredTrajectory_;
 
         
 };
