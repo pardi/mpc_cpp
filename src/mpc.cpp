@@ -13,6 +13,16 @@ mpc::mpc(   const std::array<double, 16>& stateMatrixContinuous,
 
 }
 
+mpc::mpc(   const LinearSys& sys,
+            size_t predHorizon, 
+            size_t ctrlHorizon):
+            sys_{sys}, predHorizon_{predHorizon}, ctrlHorizon_{ctrlHorizon}{
+
+    initMPCMatrices();
+
+}
+
+
 void mpc::initMPCMatrices(){
 
     initMPCStateMatrix();

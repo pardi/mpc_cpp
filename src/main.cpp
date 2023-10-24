@@ -32,15 +32,6 @@ int main (){
         desiredTrajectory(idx) = 3 * sin( 2.0 * M_PI * 0.03 * idx / (predHorizon + 1));
     }
 
-    // std::cout << desiredTrajectory << std::endl;
-
-    // Eigen::VectorXd desiredTrajectory(predHorizon + 1);
-    // desiredTrajectory.setZero();
-
-    // for (auto idx = 0; idx < predHorizon + 1; idx++){
-    //     desiredTrajectory(idx) = 2.0 * M_PI * 0.01 * idx / (predHorizon + 1);
-    // }
-
     for (auto idx = 0; idx < 800; ++idx){
 
         auto inputVector = mpc_ctrl.computeControl(desiredTrajectory.segment(idx, predHorizon + 1));

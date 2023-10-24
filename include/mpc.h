@@ -20,7 +20,11 @@ class mpc{
                 double sampleTime = 1e-3, 
                 size_t predHorizon = 5, 
                 size_t ctrlHorizon = 1);
-            
+
+        mpc(    const LinearSys& sys,
+                size_t predHorizon = 5, 
+                size_t ctrlHorizon = 1);
+                
         ~mpc() = default;
 
         Eigen::MatrixXd computeControl(const Eigen::VectorXd& desiredTrajectory);
