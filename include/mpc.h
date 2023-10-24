@@ -28,6 +28,8 @@ class mpc{
         void computeMPCMatrices();
         void composeMPCStateMatrix();
         void composeMPCInputMatrix();
+        void composeMPCWeights();
+
 
         template<typename Derived>
         Eigen::MatrixXd matPow(const Eigen::MatrixBase<Derived>& matrix, size_t power);
@@ -38,6 +40,10 @@ class mpc{
 
         Eigen::MatrixXd stateMatrix_;
         Eigen::MatrixXd inputMatrix_;
+        Eigen::MatrixXd weightMatrix1_;
+        Eigen::MatrixXd weightMatrix2_;
+        Eigen::MatrixXd weightMatrix3_;
+        Eigen::MatrixXd weightMatrix4_;
 
         
 };

@@ -106,6 +106,64 @@ void mpc::composeMPCInputMatrix(){
     }
 }
 
+void mpc::composeMPCWeights() {
+
+    /*
+    ////////////////////// 
+    // WEIGHTS
+    ////////////////////// 
+    */
+
+    /*
+    // W1 = [I  0   0   0   ...
+    //      -I  I   0   0   ...
+    //      .   .   .
+    //      0  -I   I   0]
+    */
+
+    weightMatrix1_.resize(ctrlHorizon_, ctrlHorizon_);
+    weightMatrix1_.setZero();
+
+    // First row
+    weightMatrix1_(0, 0) = 1.0;
+
+    // Second row
+    weightMatrix1_(1, 0) = -1.0;
+    weightMatrix1_(1, 1) = 1.0;
+
+    for(size_t idxCtrl = 2; idxCtrl < ctrlHorizon_; ++idxCtrl){
+        // Shift right
+        weightMatrix1_.block(idxCtrl, 1, 1, ctrlHorizon_ - 1) = weightMatrix1_.block(idxCtrl - 1, 0, 1, ctrlHorizon_ - 1);
+        weightMatrix1_.block(idxCtrl, 0, 1, 1).setZero();
+    }
+
+    /*
+    // W2 = [Q0  0   0   0   ...
+    //      0  Q1   0   0   ...
+    //      .   .   .
+    //      0  0   0   ... Qv-1]
+    */
+    
+    weightMatrix2_.resize(ctrlHorizon_, ctrlHorizon_);
+    weightMatrix2_.setIdentity();
+
+    /*
+    // W3 = W1^T * W2 * W1
+    */
+
+    weightMatrix3_ = weightMatrix1_.transpose() * weightMatrix2_ * weightMatrix1_;
+
+    /*
+    // W4 = [P0  0   0   0   ...
+    //      0  P1   0   0   ...
+    //      .   .   .
+    //      0  0   0   ... Pf]
+    */
+
+    weightMatrix4_.resize(predHorizon_, predHorizon_);
+    weightMatrix4_.setIdentity();
+
+}
 
 void mpc::computeMPCMatrices(){
 
@@ -115,66 +173,7 @@ void mpc::computeMPCMatrices(){
 
     composeMPCInputMatrix();
 
- 
-
-
-    // /*
-    // // WEIGHTS
-    // // 
-    // */
-
-    // // W1 = [I  0   0   0   ...
-    // //      -I  I   0   0   ...
-    // //      .   .   .
-    // //      0  -I   I   0]
-    // std::vector<std::vector<double>> W1(ctrl_horizon_);
-    // std::vector<double> W1row(ctrl_horizon_);
-    // std::fill(W1row.begin(), W1row.end(), 0);
-    // W1row[0] = 1.0;
-    // W1.push_back(W1row);
-
-    // W1row[0] = -1.0;
-    // W1row[1] = 1.0;
-    // W1.push_back(W1row);
-
-    // for(size_t idx = 0; idx < ctrl_horizon_ - 2; ++idx){
-    //     shift_right(W1row, 1);
-    //     W1.push_back(W1row);
-    // }
-
-    // // W2 = [Q0  0   0   0   ...
-    // //      0  Q1   0   0   ...
-    // //      .   .   .
-    // //      0  0   0   ... Qv-1]
-    // std::vector<std::vector<double>> W2(ctrl_horizon_);
-
-    // std::vector<double> W2row(ctrl_horizon_);
-    // std::fill(W2row.begin(), W2row.end(), 0);
-    // W2row[0] = 0.1;
-    
-    // for(size_t idx = 0; idx < ctrl_horizon_ - 1; ++idx){
-    //     shift_right(W2row, 1);
-    //     W2.push_back(W2row);
-    // }
-
-    // // W4 = [P0  0   0   0   ...
-    // //      0  P1   0   0   ...
-    // //      .   .   .
-    // //      0  0   0   ... Pf]
-    // std::vector<std::vector<double>> W4(pred_horizon_);
-
-    // std::vector<double> W4row(ctrl_horizon_);
-    // std::fill(W4row.begin(), W4row.end(), 0);
-    // W4row[0] = 0.1;
-    
-    // for(size_t idx = 0; idx < ctrl_horizon_ - 1; ++idx){
-    //     shift_right(W4row, 1);
-    //     W4.push_back(W4row);
-    // }
-
-    // // W3 = W1^T * W2 * W1
-
-    // auto W3 = W1.transpose() * W2 * W1;
+    composeMPCWeights();
 
 }
 

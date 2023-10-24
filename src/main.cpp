@@ -22,7 +22,7 @@ int main (){
 
     double dt = 0.05;
     size_t pred_horizon = 6;
-    size_t ctrl_horizon = 3;
+    size_t ctrl_horizon = 5;
 
     mpc mpc_ctrl(A, b, c, x0, dt, pred_horizon, ctrl_horizon);
 
