@@ -13,26 +13,31 @@ class mpc{
 
     public: 
     
-        mpc( const std::array<double, 16>& A, 
-            const std::array<double, 4>& b, 
-            const std::array<double, 4>& c, 
-            const std::array<double, 4>& x0, 
-            double dt = 1e-3, 
-            size_t pred_horizon = 5, 
-            size_t ctrl_horizon = 1);
+        mpc(    const std::array<double, 16>& stateMatrixContinuous, 
+                const std::array<double, 4>& inputMatrixContinuous, 
+                const std::array<double, 4>& outputMatrixContinuous, 
+                const std::array<double, 4>& initialState, 
+                double sampleTime = 1e-3, 
+                size_t predHorizon = 5, 
+                size_t ctrlHorizon = 1);
             
-        ~mpc() {std::cout << "mpc dest" << std::endl;};
+        ~mpc() = default;
         
     private:
         void computeControl();
         void computeMPCMatrices();
+        void composeMPCStateMatrix();
+        void composeMPCInputMatrix();
+
         template<typename Derived>
         Eigen::MatrixXd matPow(const Eigen::MatrixBase<Derived>& matrix, size_t power);
 
         LinearSys sys_;
-        size_t pred_horizon_;
-        size_t ctrl_horizon_;
+        size_t predHorizon_;
+        size_t ctrlHorizon_;
 
+        Eigen::MatrixXd stateMatrix_;
+        Eigen::MatrixXd inputMatrix_;
 
         
 };

@@ -1,28 +1,18 @@
 #include <mpc.h>
 
-mpc::mpc(   const std::array<double, 16>& A, 
-            const std::array<double, 4>& b, 
-            const std::array<double, 4>& c, 
-            const std::array<double, 4>& x0, 
-            double dt, 
-            size_t pred_horizon, 
-            size_t ctrl_horizon): 
-            sys_{A, b, c, x0, dt}, pred_horizon_{pred_horizon}, ctrl_horizon_{ctrl_horizon}{
+mpc::mpc(   const std::array<double, 16>& stateMatrixContinuous, 
+            const std::array<double, 4>& inputMatrixContinuous, 
+            const std::array<double, 4>& outputMatrixContinuous, 
+            const std::array<double, 4>& initialState, 
+            double sampleTime, 
+            size_t predHorizon, 
+            size_t ctrlHorizon):
+            sys_{stateMatrixContinuous, inputMatrixContinuous, outputMatrixContinuous, initialState, sampleTime}, predHorizon_{predHorizon}, ctrlHorizon_{ctrlHorizon}{
 
     computeMPCMatrices();
 }
 
-void mpc::computeMPCMatrices(){
-
-    // z_hat = O x[k] + M u_hat
-    std::vector<std::vector<double>> O;
-    auto ASys = sys_.A();
-    auto bSys = sys_.b();
-    auto cSys = sys_.c();
-    const Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > A(ASys.data());
-    const Eigen::Map<Eigen::Matrix<double, 4, 1> > b(bSys.data());
-    const Eigen::Map<Eigen::Matrix<double, 1, 4> > c(cSys.data());
-
+void mpc::composeMPCStateMatrix(){
     /*
     // STATE MATRIX - O
     // 
@@ -35,18 +25,25 @@ void mpc::computeMPCMatrices(){
     // f -> size of the prediction horizon
     */
 
-    std::vector<double> ORow = {0.0, 0.0, 0.0, 0.0};
-    Eigen::Map<Eigen::Matrix<double, 1, 4>> oRow(ORow.data());
-    oRow = c * A;
+    auto ASys = sys_.A();
+    auto bSys = sys_.b();
+    auto cSys = sys_.c();
+    const Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > A(ASys.data());
+    const Eigen::Map<Eigen::Matrix<double, 4, 1> > b(bSys.data());
+    const Eigen::Map<Eigen::Matrix<double, 1, 4> > c(cSys.data());
 
-    O.push_back(ORow);
+    stateMatrix_.resize(predHorizon_, 4);
+    stateMatrix_.setZero();
 
-    for (size_t idx_pred = 1; idx_pred < pred_horizon_; ++idx_pred){
-        oRow = oRow * A;
-        O.push_back(ORow);
-    }
+    stateMatrix_.block<1, 4>(0, 0) = c * A;
+
+    for (size_t idx_pred = 1; idx_pred < predHorizon_; ++idx_pred){
+        stateMatrix_.block<1, 4>(idx_pred, 0) = stateMatrix_.block<1, 4>(idx_pred - 1, 0) * A;
+    }    
+}
 
 
+void mpc::composeMPCInputMatrix(){
     /*
     // CONTROL MATRIX - M
     // size[pred_horizon, ctrl_horizon]
@@ -62,91 +59,132 @@ void mpc::computeMPCMatrices(){
 
     */
 
-    std::vector<std::vector<double>> M; 
+    auto ASys = sys_.A();
+    auto bSys = sys_.b();
+    auto cSys = sys_.c();
+    const Eigen::Map<Eigen::Matrix<double, 4, 4, Eigen::RowMajor> > A(ASys.data());
+    const Eigen::Map<Eigen::Matrix<double, 4, 1> > b(bSys.data());
+    const Eigen::Map<Eigen::Matrix<double, 1, 4> > c(cSys.data());
 
-    std::vector<double> MRow(ctrl_horizon_);
-    std::fill(MRow.begin(), MRow.end(), 0);
-
-    // Define shift function for vectors
-
-    auto shift_right = [](std::vector<double>& vec, size_t distance) {
-        if(distance >= vec.size()) {
-            std::fill(vec.begin(), vec.end(), 0);
-            return;
-        }
-        
-        std::move_backward(vec.begin(), vec.end() - distance, vec.end());
-        std::fill(vec.begin(), vec.begin() + distance, 0);
-    };  
-
+    inputMatrix_.resize(predHorizon_ + 1, ctrlHorizon_);
+    inputMatrix_.setZero();
 
     // Within ctrl horizon
+    // First row
+    inputMatrix_.block(0, 0, 1, 1) = c * b;
+    
+    for (size_t idxCtrl = 1; idxCtrl < ctrlHorizon_; ++idxCtrl){
+        
+        // Shift right
+        inputMatrix_.block(idxCtrl, 1, 1, ctrlHorizon_ - 1) = inputMatrix_.block(idxCtrl - 1, 0, 1, ctrlHorizon_ - 1);
+        inputMatrix_.block(idxCtrl, 0, 1, 1).setZero(); // TODO: it can be removed for speed
 
-    for (size_t idx_ctrl = 0; idx_ctrl < ctrl_horizon_; ++idx_ctrl){
-        shift_right(MRow, 1);    
-   
-        MRow[0] = (c * matPow(A, idx_ctrl) * b)[0];
-
-        M.push_back(MRow);
-
+        // Fill first element
+        inputMatrix_.block(idxCtrl, 0, 1, 1) = c * matPow(A, idxCtrl) * b;
+       
     }
 
     // After ctrl horizon
-
     Eigen::Matrix<double, 4, 4> Ahat = Eigen::Matrix<double, 4, 4>::Identity();
 
-    for (size_t idx_pred = ctrl_horizon_; idx_pred <= pred_horizon_; ++idx_pred){
-        shift_right(MRow, 1);  
+    for (size_t idxPred = ctrlHorizon_; idxPred <= predHorizon_; ++idxPred){
+        // Shift right
+        inputMatrix_.block(idxPred, 1, 1, ctrlHorizon_ - 1) = inputMatrix_.block(idxPred - 1, 0, 1, ctrlHorizon_ - 1);
+        inputMatrix_.block(idxPred, 0, 1, 1).setZero(); // TODO: it can be removed for speed
 
-        MRow[0] = (c * matPow(A, idx_pred) * b)[0];
+        // Fill first element
+        inputMatrix_.block(idxPred, 0, 1, 1) = c * matPow(A, idxPred) * b;
 
         // A_(i,v) = A^(i-v) + A^(i-v-1)+ ... + A + I
+        auto powAhat = matPow(A, idxPred - ctrlHorizon_);
 
-        auto powAhat = matPow(A, idx_pred - ctrl_horizon_);
-
-        for (size_t idx_pow = 0; idx_pow < idx_pred; ++idx_pow){
+        for (size_t idxPow = 0; idxPow < idxPred; ++idxPow){
             Ahat = Ahat + powAhat;
         }
-         
-        *(MRow.end() - 1) = (c * Ahat * b)[0];
 
-        M.push_back(MRow);
+        inputMatrix_.block(idxPred, ctrlHorizon_ - 1, 1, 1) = c * Ahat * b;
     }
-
-    /*
-    // WEIGHTS
-    // 
-    // W1 = [I  0   0   0   ...
-    //      -I  I   0   0   ...
-    //      .   .   .
-    //      0  -I   I   0]
-    // W2 = [Q0  0   0   0   ...
-    //      0  Q1   0   0   ...
-    //      .   .   .
-    //      0  0   0   ... Qv-1]
-    // W3 = W1^T * W2 * W1
-    */
-
-    std::vector<std::vector<double>> W1(ctrl_horizon_);
-    std::vector<double> W1row(ctrl_horizon_);
-    std::fill(W1row.begin(), W1row.end(), 0);
-    W1row[0] = 1.0;
-    W1.push_back(W1row);
-
-    W1row[0] = -1.0;
-    W1row[1] = 1.0;
-    W1.push_back(W1row);
+}
 
 
+void mpc::computeMPCMatrices(){
+
+    // z_hat = O x[k] + M u_hat
+
+    composeMPCStateMatrix();
+
+    composeMPCInputMatrix();
+
+ 
 
 
+    // /*
+    // // WEIGHTS
+    // // 
+    // */
 
+    // // W1 = [I  0   0   0   ...
+    // //      -I  I   0   0   ...
+    // //      .   .   .
+    // //      0  -I   I   0]
+    // std::vector<std::vector<double>> W1(ctrl_horizon_);
+    // std::vector<double> W1row(ctrl_horizon_);
+    // std::fill(W1row.begin(), W1row.end(), 0);
+    // W1row[0] = 1.0;
+    // W1.push_back(W1row);
+
+    // W1row[0] = -1.0;
+    // W1row[1] = 1.0;
+    // W1.push_back(W1row);
+
+    // for(size_t idx = 0; idx < ctrl_horizon_ - 2; ++idx){
+    //     shift_right(W1row, 1);
+    //     W1.push_back(W1row);
+    // }
+
+    // // W2 = [Q0  0   0   0   ...
+    // //      0  Q1   0   0   ...
+    // //      .   .   .
+    // //      0  0   0   ... Qv-1]
+    // std::vector<std::vector<double>> W2(ctrl_horizon_);
+
+    // std::vector<double> W2row(ctrl_horizon_);
+    // std::fill(W2row.begin(), W2row.end(), 0);
+    // W2row[0] = 0.1;
+    
+    // for(size_t idx = 0; idx < ctrl_horizon_ - 1; ++idx){
+    //     shift_right(W2row, 1);
+    //     W2.push_back(W2row);
+    // }
+
+    // // W4 = [P0  0   0   0   ...
+    // //      0  P1   0   0   ...
+    // //      .   .   .
+    // //      0  0   0   ... Pf]
+    // std::vector<std::vector<double>> W4(pred_horizon_);
+
+    // std::vector<double> W4row(ctrl_horizon_);
+    // std::fill(W4row.begin(), W4row.end(), 0);
+    // W4row[0] = 0.1;
+    
+    // for(size_t idx = 0; idx < ctrl_horizon_ - 1; ++idx){
+    //     shift_right(W4row, 1);
+    //     W4.push_back(W4row);
+    // }
+
+    // // W3 = W1^T * W2 * W1
+
+    // auto W3 = W1.transpose() * W2 * W1;
 
 }
 
 void mpc::computeControl(){
-    // u = (M^T * W4 * M + w3)^-1 * M^T * W4 * s
 
+    // // u = (M^T * W4 * M + w3)^-1 * M^T * W4 * s
+    // // s = zd - Oxk
 
+    // auto s = zd - O * x;
+    // auto control_input = (M.tranpose() * W4 * M + W3).inverse() * M.tranpose() * W5 * s;
 
+    // return control_input;
 }
