@@ -9,21 +9,21 @@ mpc::mpc(   const std::array<double, 16>& stateMatrixContinuous,
             size_t ctrlHorizon):
             sys_{stateMatrixContinuous, inputMatrixContinuous, outputMatrixContinuous, initialState, sampleTime}, predHorizon_{predHorizon}, ctrlHorizon_{ctrlHorizon}{
 
-    computeMPCMatrices();
+    initMPCMatrices();
 
 }
 
-void mpc::computeMPCMatrices(){
+void mpc::initMPCMatrices(){
 
-    composeMPCStateMatrix();
+    initMPCStateMatrix();
 
-    composeMPCInputMatrix();
+    initMPCInputMatrix();
 
-    composeMPCWeights();
+    initMPCWeights();
 
 }
 
-void mpc::composeMPCStateMatrix(){
+void mpc::initMPCStateMatrix(){
     /*
     // STATE MATRIX - O
     // 
@@ -50,7 +50,7 @@ void mpc::composeMPCStateMatrix(){
 }
 
 
-void mpc::composeMPCInputMatrix(){
+void mpc::initMPCInputMatrix(){
     /*
     // CONTROL MATRIX - M
     // size[pred_horizon, ctrl_horizon]
@@ -110,7 +110,7 @@ void mpc::composeMPCInputMatrix(){
     }
 }
 
-void mpc::composeMPCWeights() {
+void mpc::initMPCWeights() {
 
     /*
     ////////////////////// 
@@ -142,6 +142,7 @@ void mpc::composeMPCWeights() {
     }
 
     /*
+    // Penalise the inputs
     // W2 = [Q0  0   0   0   ...
     //      0  Q1   0   0   ...
     //      .   .   .
@@ -150,7 +151,7 @@ void mpc::composeMPCWeights() {
     
     weightMatrix2_.resize(ctrlHorizon_, ctrlHorizon_);
     weightMatrix2_.setIdentity();
-    weightMatrix2_ = weightMatrix2_ * 1e-4;
+    weightMatrix2_ = weightMatrix2_ * 1e-3;
 
     /*
     // W3 = W1^T * W2 * W1
@@ -159,6 +160,7 @@ void mpc::composeMPCWeights() {
     weightMatrix3_ = weightMatrix1_.transpose() * weightMatrix2_ * weightMatrix1_;
 
     /*
+    // Penalise the Error
     // W4 = [P0  0   0   0   ...
     //      0  P1   0   0   ...
     //      .   .   .
@@ -167,7 +169,7 @@ void mpc::composeMPCWeights() {
 
     weightMatrix4_.resize(predHorizon_ + 1, predHorizon_ + 1);
     weightMatrix4_.setIdentity();
-    weightMatrix4_ = weightMatrix4_ * 1e5;
+    weightMatrix4_ = weightMatrix4_ * 1e4;
 
 }
 
@@ -179,6 +181,7 @@ Eigen::MatrixXd mpc::computeControl(const Eigen::VectorXd& desiredTrajectory){
 
     // s = zd - Oxk
     auto stateError = desiredTrajectory_ - stateMatrix_ * currentState;
+
 
     // u = (M^T * W4 * M + W3)^-1 * M^T * W4 * s
     auto controlInput = (inputMatrix_.transpose() * weightMatrix4_ * inputMatrix_ + weightMatrix3_).inverse() * inputMatrix_.transpose() * weightMatrix4_ * stateError;

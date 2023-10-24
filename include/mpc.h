@@ -29,10 +29,10 @@ class mpc{
     
     private:
 
-        void computeMPCMatrices();
-        void composeMPCStateMatrix();
-        void composeMPCInputMatrix();
-        void composeMPCWeights();
+        void initMPCMatrices();
+        void initMPCStateMatrix();
+        void initMPCInputMatrix();
+        void initMPCWeights();
 
         template<typename Derived>
         Eigen::MatrixXd matPow(const Eigen::MatrixBase<Derived>& matrix, size_t power);
